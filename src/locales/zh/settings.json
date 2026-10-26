@@ -20,7 +20,12 @@
       },
       "fields": {
         "autoLaunch": "开机自启",
-        "silentStart": "静默启动"
+        "silentStart": "静默启动",
+        "appLock": "应用锁"
+      },
+      "appLock": {
+        "enabled": "已开启",
+        "disabled": "未开启"
       },
       "notifications": {
         "tunMode": {
@@ -276,6 +281,40 @@
     }
   },
   "modals": {
+    "appLock": {
+      "title": "应用锁",
+      "fields": {
+        "pin": "PIN",
+        "confirmPin": "确认 PIN",
+        "currentPin": "当前 PIN",
+        "newPin": "新 PIN",
+        "confirmNewPin": "确认新 PIN",
+        "behavior": "窗口隐藏时",
+        "delay": "延迟"
+      },
+      "options": {
+        "immediately": "立即锁定",
+        "afterDelay": "延迟锁定"
+      },
+      "actions": {
+        "lockNow": "立即锁定",
+        "disable": "关闭应用锁"
+      },
+      "messages": {
+        "pinRule": "请输入 4 到 8 位数字。",
+        "pinMismatch": "两次输入的 PIN 不一致。",
+        "wrongPin": "PIN 不正确。",
+        "shortcut": "快捷键：Ctrl+Shift+L（macOS 为 ⌘⇧L）。",
+        "proxyKeepsRunning": "窗口锁定期间，代理和托盘菜单仍可正常使用。"
+      },
+      "overlay": {
+        "title": "应用已锁定",
+        "prompt": "请输入 PIN",
+        "wrongPin": "PIN 不正确",
+        "unlock": "解锁",
+        "backspace": "删除"
+      }
+    },
     "clashPort": {
       "title": "端口设置",
       "fields": {

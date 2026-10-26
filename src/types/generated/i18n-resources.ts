@@ -865,6 +865,40 @@ export interface TranslationResources {
         }
       }
       modals: {
+        appLock: {
+          actions: {
+            disable: string
+            lockNow: string
+          }
+          fields: {
+            behavior: string
+            confirmNewPin: string
+            confirmPin: string
+            currentPin: string
+            delay: string
+            newPin: string
+            pin: string
+          }
+          messages: {
+            pinMismatch: string
+            pinRule: string
+            proxyKeepsRunning: string
+            shortcut: string
+            wrongPin: string
+          }
+          options: {
+            afterDelay: string
+            immediately: string
+          }
+          overlay: {
+            backspace: string
+            prompt: string
+            title: string
+            unlock: string
+            wrongPin: string
+          }
+          title: string
+        }
         backup: {
           actions: {
             backup: string
@@ -1377,7 +1411,12 @@ export interface TranslationResources {
           }
         }
         system: {
+          appLock: {
+            disabled: string
+            enabled: string
+          }
           fields: {
+            appLock: string
             autoLaunch: string
             silentStart: string
           }

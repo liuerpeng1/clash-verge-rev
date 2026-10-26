@@ -20,7 +20,12 @@
       },
       "fields": {
         "autoLaunch": "Автоматик башлау",
-        "silentStart": "Тын башлау"
+        "silentStart": "Тын башлау",
+        "appLock": "App Lock"
+      },
+      "appLock": {
+        "enabled": "On",
+        "disabled": "Off"
       },
       "notifications": {
         "tunMode": {
@@ -276,6 +281,40 @@
     }
   },
   "modals": {
+    "appLock": {
+      "title": "App Lock",
+      "fields": {
+        "pin": "PIN",
+        "confirmPin": "Confirm PIN",
+        "currentPin": "Current PIN",
+        "newPin": "New PIN",
+        "confirmNewPin": "Confirm new PIN",
+        "behavior": "When the window hides",
+        "delay": "Delay"
+      },
+      "options": {
+        "immediately": "Lock immediately",
+        "afterDelay": "Lock after a delay"
+      },
+      "actions": {
+        "lockNow": "Lock Now",
+        "disable": "Turn Off"
+      },
+      "messages": {
+        "pinRule": "Use 4 to 8 digits.",
+        "pinMismatch": "The two PINs do not match.",
+        "wrongPin": "Incorrect PIN.",
+        "shortcut": "Shortcut: Ctrl+Shift+L. On macOS, ⌘⇧L.",
+        "proxyKeepsRunning": "The proxy and tray menu keep working while the window is locked."
+      },
+      "overlay": {
+        "title": "App Locked",
+        "prompt": "Enter PIN",
+        "wrongPin": "Incorrect PIN",
+        "unlock": "Unlock",
+        "backspace": "Delete"
+      }
+    },
     "clashPort": {
       "title": "Порт көйләүләре",
       "fields": {

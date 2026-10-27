@@ -1,6 +1,8 @@
 name: Build macOS Apple Silicon DMG
 
 on:
+  push:
+    branches: [dev]
   pull_request:
   workflow_dispatch:
     inputs:
@@ -11,9 +13,14 @@ on:
         options:
           - macos-15-intel
           - macos-latest
+      force_rebuild:
+        description: Rebuild the DMG even when sources match the cached Apple Silicon artifact.
+        type: boolean
+        default: false
 
 permissions:
-  contents: read
+  contents: write
+  actions: read
 
 concurrency:
   group: build-macos-arm64-${{ github.workflow }}-${{ github.ref }}
@@ -25,8 +32,105 @@ env:
   NODE_OPTIONS: --max_old_space_size=4096
 
 jobs:
+  reuse-or-check:
+    name: Reuse cached Apple Silicon artifact
+    runs-on: ubuntu-latest
+    outputs:
+      reused: ${{ steps.reuse.outputs.reused }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Reuse artifact and publish release when sources are unchanged
+        id: reuse
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORCE_REBUILD: ${{ github.event.inputs.force_rebuild }}
+        run: |
+          set -euo pipefail
+
+          if [ "${FORCE_REBUILD:-}" = "true" ]; then
+            echo "force_rebuild is set; full build required"
+            echo "reused=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! git diff --quiet 976d4341c7e1d31d800ed774a3751cf1b6997ef3 HEAD -- src src-tauri package.json pnpm-lock.yaml; then
+            echo "Sources differ from 976d4341c7e1d31d800ed774a3751cf1b6997ef3; full build required"
+            echo "reused=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          gh run download 40427282877 --repo "${{ github.repository }}" -n clash-verge-aarch64-apple-darwin -D release-assets
+
+          # upload-artifact@v4 keeps the DMG and .app archive under dmg/ and macos/.
+          shopt -s nullglob
+          dmgs=(release-assets/*.dmg)
+          if [ "${#dmgs[@]}" -eq 0 ]; then
+            staging="$(mktemp -d)"
+            find release-assets -type f \( -name '*.dmg' -o -name '*.tar.gz' \) -exec cp -t "$staging" {} +
+            rm -rf release-assets
+            mkdir -p release-assets
+            cp -a "$staging"/. release-assets/
+            dmgs=(release-assets/*.dmg)
+          fi
+          if [ "${#dmgs[@]}" -eq 0 ]; then
+            echo "No DMG found under release-assets"
+            find release-assets -print || true
+            exit 1
+          fi
+
+          notes="$(mktemp)"
+          cat > "$notes" << 'EOF'
+          ## 应用锁 / App Lock
+
+          **中文**
+
+          这是 `dev` 上的 macOS Apple Silicon（M 系列）安装包，使用 ad-hoc 签名。
+
+          「应用锁」在「设置 → 系统设置」中开启。PIN 为 4–8 位数字。应用启动时，以及窗口隐藏后再次打开时，需要输入 PIN。窗口隐藏后可以立即锁定，也可以延迟锁定。锁定期间代理和托盘菜单继续可用。macOS 快捷键：⌘⇧L。
+
+          **English**
+
+          This is the macOS Apple Silicon (M-series) build from `dev`. The app is ad-hoc signed.
+
+          Turn on App Lock under Settings → System Setting. The PIN is 4–8 digits. It is required when the app starts and when the window is opened again after it was hidden. Hiding the window can lock immediately or after a delay. The proxy and the tray menu keep working while the window is locked. macOS shortcut: ⌘⇧L.
+
+          ## 首次打开 / First launch
+
+          ad-hoc 签名在首次打开时可能被 macOS 拦截，并提示应用已损坏、无法打开。请先把 Clash Verge 拷到「应用程序」，再在终端执行：
+
+          macOS may block this ad-hoc signed app on first launch and report that it is damaged. Copy Clash Verge into Applications, then run:
+
+          ```bash
+          xattr -cr "/Applications/Clash Verge.app"
+          ```
+          EOF
+
+          title="Clash Verge Rev v2.5.9 (App Lock - macOS Apple Silicon)"
+          if gh release view v2.5.9-app-lock --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release edit v2.5.9-app-lock --repo "${{ github.repository }}" \
+              --target dev \
+              --title "$title" \
+              --latest \
+              --notes-file "$notes"
+          else
+            gh release create v2.5.9-app-lock --repo "${{ github.repository }}" \
+              --target dev \
+              --title "$title" \
+              --latest \
+              --notes-file "$notes"
+          fi
+
+          gh release upload v2.5.9-app-lock --repo "${{ github.repository }}" release-assets/* --clobber
+          echo "reused=true" >> "$GITHUB_OUTPUT"
+
   dmg:
     name: aarch64-apple-darwin DMG
+    needs: reuse-or-check
+    if: needs.reuse-or-check.outputs.reused != 'true'
     runs-on: ${{ github.event.inputs.runner || 'macos-15-intel' }}
     steps:
       - name: Checkout repository
@@ -101,3 +205,64 @@ jobs:
           path: |
             target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
             target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz
+
+      - name: Publish DMG to GitHub Release
+        if: github.ref == 'refs/heads/dev' || github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          dmgs=(target/aarch64-apple-darwin/release/bundle/dmg/*.dmg)
+          archives=(target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz)
+          if [ "${#dmgs[@]}" -eq 0 ] || [ "${#archives[@]}" -eq 0 ]; then
+            echo "Built DMG or .app.tar.gz is missing"
+            exit 1
+          fi
+
+          notes="$(mktemp)"
+          cat > "$notes" << 'EOF'
+          ## 应用锁 / App Lock
+
+          **中文**
+
+          这是 `dev` 上的 macOS Apple Silicon（M 系列）安装包，使用 ad-hoc 签名。
+
+          「应用锁」在「设置 → 系统设置」中开启。PIN 为 4–8 位数字。应用启动时，以及窗口隐藏后再次打开时，需要输入 PIN。窗口隐藏后可以立即锁定，也可以延迟锁定。锁定期间代理和托盘菜单继续可用。macOS 快捷键：⌘⇧L。
+
+          **English**
+
+          This is the macOS Apple Silicon (M-series) build from `dev`. The app is ad-hoc signed.
+
+          Turn on App Lock under Settings → System Setting. The PIN is 4–8 digits. It is required when the app starts and when the window is opened again after it was hidden. Hiding the window can lock immediately or after a delay. The proxy and the tray menu keep working while the window is locked. macOS shortcut: ⌘⇧L.
+
+          ## 首次打开 / First launch
+
+          ad-hoc 签名在首次打开时可能被 macOS 拦截，并提示应用已损坏、无法打开。请先把 Clash Verge 拷到「应用程序」，再在终端执行：
+
+          macOS may block this ad-hoc signed app on first launch and report that it is damaged. Copy Clash Verge into Applications, then run:
+
+          ```bash
+          xattr -cr "/Applications/Clash Verge.app"
+          ```
+          EOF
+
+          title="Clash Verge Rev v2.5.9 (App Lock - macOS Apple Silicon)"
+          if gh release view v2.5.9-app-lock --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release edit v2.5.9-app-lock --repo "${{ github.repository }}" \
+              --target dev \
+              --title "$title" \
+              --latest \
+              --notes-file "$notes"
+          else
+            gh release create v2.5.9-app-lock --repo "${{ github.repository }}" \
+              --target dev \
+              --title "$title" \
+              --latest \
+              --notes-file "$notes"
+          fi
+
+          gh release upload v2.5.9-app-lock --repo "${{ github.repository }}" \
+            target/aarch64-apple-darwin/release/bundle/dmg/*.dmg \
+            target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz \
+            --clobber

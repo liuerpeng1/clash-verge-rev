@@ -1,5 +1,5 @@
 export const APP_LOCK_EVENT = 'verge:app-lock'
-export const PIN_MIN_LENGTH = 4
+const PIN_MIN_LENGTH = 4
 export const PIN_MAX_LENGTH = 8
 const PIN_HASH_PATTERN = /^[a-f0-9]{64}$/
 const MAX_AUTO_LOCK_MINUTES = 24 * 60

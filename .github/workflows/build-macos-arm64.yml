@@ -1,0 +1,103 @@
+name: Build macOS Apple Silicon DMG
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: GitHub-hosted runner. Intel macOS cross-compiles the Apple Silicon target.
+        type: choice
+        default: macos-15-intel
+        options:
+          - macos-15-intel
+          - macos-latest
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-macos-arm64-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_INCREMENTAL: 0
+  HUSKY: 0
+  NODE_OPTIONS: --max_old_space_size=4096
+
+jobs:
+  dmg:
+    name: aarch64-apple-darwin DMG
+    runs-on: ${{ github.event.inputs.runner || 'macos-15-intel' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: '1.99.1'
+          targets: aarch64-apple-darwin
+
+      - name: Add Apple Silicon Rust target
+        run: rustup target add aarch64-apple-darwin
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: v1-rust
+          shared-key: macos-arm64-dmg
+          workspaces: |
+            . -> target
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6.1.0
+        with:
+          run_install: false
+
+      - name: Install Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24.22.1'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download aarch64-apple-darwin sidecars
+        run: pnpm run prebuild aarch64-apple-darwin
+
+      - name: Build ad-hoc signed DMG
+        env:
+          # Ad-hoc identity so forks can build without an Apple Developer certificate.
+          APPLE_SIGNING_IDENTITY: '-'
+        run: pnpm exec tauri build --target aarch64-apple-darwin --config '{"bundle":{"createUpdaterArtifacts":false}}'
+
+      - name: Archive the .app bundle
+        run: |
+          set -euo pipefail
+          dmg_dir="target/aarch64-apple-darwin/release/bundle/dmg"
+          app_dir="target/aarch64-apple-darwin/release/bundle/macos"
+          shopt -s nullglob
+          dmgs=("$dmg_dir"/*.dmg)
+          if [ "${#dmgs[@]}" -eq 0 ]; then
+            echo "No DMG was produced under ${dmg_dir}"
+            exit 1
+          fi
+          apps=("$app_dir"/*.app)
+          if [ "${#apps[@]}" -eq 0 ]; then
+            echo "No .app bundle was produced under ${app_dir}"
+            exit 1
+          fi
+          app_name="$(basename "${apps[0]}")"
+          tar -czf "${app_dir}/${app_name}.tar.gz" -C "$app_dir" "$app_name"
+          ls -lh "$dmg_dir" "$app_dir"
+
+      - name: Upload DMG and app archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: clash-verge-aarch64-apple-darwin
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz

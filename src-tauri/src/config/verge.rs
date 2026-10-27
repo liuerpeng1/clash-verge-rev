@@ -83,6 +83,16 @@ pub struct IVerge {
 
     pub enable_silent_start: Option<bool>,
 
+    /// Require a PIN before the main window can be used.
+    pub enable_app_lock: Option<bool>,
+
+    /// SHA-256 hex digest of the app-lock PIN. Empty clears a saved PIN.
+    #[specta(type = Option<std::string::String>)]
+    pub app_lock_pin_hash: Option<String>,
+
+    /// Minutes the window must stay hidden before locking. Zero locks as soon as it hides.
+    pub app_lock_auto_lock_mins: Option<u64>,
+
     pub enable_system_proxy: Option<bool>,
 
     pub enable_proxy_guard: Option<bool>,
@@ -379,6 +389,9 @@ impl IVerge {
             tun_tray_icon: Some(false),
             enable_auto_launch: Some(false),
             enable_silent_start: Some(false),
+            enable_app_lock: Some(false),
+            app_lock_pin_hash: None,
+            app_lock_auto_lock_mins: Some(0),
             enable_hover_jump_navigator: Some(true),
             hover_jump_navigator_delay: Some(280),
             enable_system_proxy: Some(false),
@@ -468,6 +481,9 @@ impl IVerge {
         patch!(enable_tun_mode);
         patch!(enable_auto_launch);
         patch!(enable_silent_start);
+        patch!(enable_app_lock);
+        patch!(app_lock_pin_hash);
+        patch!(app_lock_auto_lock_mins);
         patch!(enable_hover_jump_navigator);
         patch!(hover_jump_navigator_delay);
         #[cfg(not(target_os = "windows"))]

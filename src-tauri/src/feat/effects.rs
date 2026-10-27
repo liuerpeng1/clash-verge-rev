@@ -72,6 +72,9 @@ verge_registry! {
     enable_tun_mode => Tun;
     enable_auto_launch => [Autostart];
     enable_silent_start => NoEffect;
+    enable_app_lock => NoEffect;
+    app_lock_pin_hash => NoEffect;
+    app_lock_auto_lock_mins => NoEffect;
     enable_system_proxy => [SystemProxy, TrayMenu, TrayTooltip, TrayIcon];
     enable_proxy_guard => [SystemProxy];
     enable_bypass_check => NoEffect;

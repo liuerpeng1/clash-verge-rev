@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { DialogRef, Switch, TooltipIcon } from '@/components/base'
 import ProxyControlSwitches from '@/components/shared/proxy-control-switches'
 import { useVerge } from '@/hooks/use-verge'
+import { isAppLockConfigured } from '@/utils/app-lock'
 
+import { AppLockViewer } from './mods/app-lock-viewer'
 import { GuardState } from './mods/guard-state'
 import { SettingList, SettingItem } from './mods/setting-comp'
 import { SysproxyViewer } from './mods/sysproxy-viewer'
@@ -23,6 +25,8 @@ const SettingSystem = ({ onError }: Props) => {
 
   const sysproxyRef = useRef<DialogRef>(null)
   const tunRef = useRef<DialogRef>(null)
+  const appLockRef = useRef<DialogRef>(null)
+  const appLockOn = isAppLockConfigured(verge)
 
   const onSwitchFormat = (
     _e: React.ChangeEvent<HTMLInputElement>,
@@ -36,6 +40,7 @@ const SettingSystem = ({ onError }: Props) => {
     <SettingList title={t('settings.sections.system.title')}>
       <SysproxyViewer ref={sysproxyRef} />
       <TunViewer ref={tunRef} />
+      <AppLockViewer ref={appLockRef} />
 
       <ProxyControlSwitches
         label={t('settings.sections.system.toggles.tunMode')}
@@ -93,6 +98,16 @@ const SettingSystem = ({ onError }: Props) => {
           <Switch edge="end" />
         </GuardState>
       </SettingItem>
+
+      <SettingItem
+        onClick={() => appLockRef.current?.open()}
+        label={t('settings.sections.system.fields.appLock')}
+        secondary={t(
+          appLockOn
+            ? 'settings.sections.system.appLock.enabled'
+            : 'settings.sections.system.appLock.disabled',
+        )}
+      />
     </SettingList>
   )
 }

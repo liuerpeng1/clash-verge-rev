@@ -380,6 +380,12 @@ export type IVerge_Deserialize = {
   enable_tun_mode?: boolean | null
   enable_auto_launch?: boolean | null
   enable_silent_start?: boolean | null
+  /**  Require a PIN before the main window can be used. */
+  enable_app_lock?: boolean | null
+  /**  SHA-256 hex digest of the app-lock PIN. Empty clears a saved PIN. */
+  app_lock_pin_hash?: string | null
+  /**  Minutes the window must stay hidden before locking. Zero locks as soon as it hides. */
+  app_lock_auto_lock_mins?: number | null
   enable_system_proxy?: boolean | null
   enable_proxy_guard?: boolean | null
   enable_bypass_check?: boolean | null
@@ -470,6 +476,12 @@ export type IVerge_Serialize = {
   enable_tun_mode: boolean | null
   enable_auto_launch: boolean | null
   enable_silent_start: boolean | null
+  /**  Require a PIN before the main window can be used. */
+  enable_app_lock: boolean | null
+  /**  SHA-256 hex digest of the app-lock PIN. Empty clears a saved PIN. */
+  app_lock_pin_hash: string | null
+  /**  Minutes the window must stay hidden before locking. Zero locks as soon as it hides. */
+  app_lock_auto_lock_mins: number | null
   enable_system_proxy: boolean | null
   enable_proxy_guard: boolean | null
   enable_bypass_check: boolean | null
